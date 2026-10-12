@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Progress">
+<title>Programme progress</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap">
+<style>
+:root{--bg:#fbeee9;--fg:#4a2433;--muted:#9a6b7a;--track:#f1d3d3;--bar:#d9708c;--soil:#c9a089;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1a26;--fg:#fbe9ee;--muted:#c79aab;--track:#43293a;--bar:#f0a0b6;--soil:#7a5440}}
+:root[data-theme="dark"]{--bg:#2a1a26;--fg:#fbe9ee;--muted:#c79aab;--track:#43293a;--bar:#f0a0b6;--soil:#7a5440}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:"Cormorant Garamond",Georgia,"Times New Roman",serif;display:flex;align-items:center;justify-content:center}
+main{width:100%;max-width:420px;padding:16px 24px;box-sizing:border-box;text-align:center}
+h1{font-size:1.25rem;font-weight:500;font-style:italic;color:var(--muted);margin:0}
+svg{width:100%;max-height:44vh;display:block;margin:0 auto}
+.pct{font-size:clamp(3.5rem,20vw,5.5rem);line-height:1;font-weight:600;font-variant-numeric:tabular-nums}
+.pct small{font-size:.45em;color:var(--muted)}
+.track{height:10px;background:var(--track);border-radius:5px;margin:14px 0 10px;overflow:hidden}
+.fill{height:100%;background:var(--bar);width:0;border-radius:5px}
+.row{display:flex;justify-content:space-between;color:var(--muted);font-size:1.05rem}
+.row b{color:var(--fg);font-weight:600}
+.dates{margin-top:12px;font-size:1rem;color:var(--muted);font-style:italic}
+details{margin-top:12px;color:var(--muted);font-size:1rem}
+summary{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--bar);margin-top:8px}
+button{font:inherit;color:var(--fg);background:var(--track);border:0;border-radius:14px;padding:4px 14px;margin-top:6px}
+@keyframes sway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+.sway{transform-origin:100px 230px;animation:sway 5s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.sway{animation:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Sara’s journey to becoming a Doctor</h1>
+  <svg viewBox="0 0 200 260" role="img" aria-label="A sunflower that grows as the programme progresses">
+    <ellipse cx="100" cy="242" rx="72" ry="15" fill="var(--soil)"/>
+    <g id="seed"><ellipse cx="100" cy="229" rx="6" ry="3.6" fill="#5b3b2e" transform="rotate(-12 100 229)"/><path d="M95 228 L105 229" stroke="#e8d6c4" stroke-width="1" opacity=".7"/></g>
+    <g id="plant">
+      <path id="stem" d="" stroke="#78a56f" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <g id="leafA"><path d="M0 0 C18 -16 38 -14 52 -2 C38 12 16 10 0 0Z" fill="#8fbd85"/></g>
+      <g id="leafB"><path d="M0 0 C18 -16 38 -14 52 -2 C38 12 16 10 0 0Z" fill="#7fb076"/></g>
+      <g id="head">
+        <circle id="sepal" r="0" fill="#78a56f"/>
+        <g id="petals"></g>
+        <circle id="disc" r="0" fill="#6b3f2a"/>
+        <circle id="ring" r="0" fill="none" stroke="#9a6340" stroke-width="2"/>
+      </g>
+    </g>
+  </svg>
+  <div class="pct"><span id="p">0.00</span><small>%</small></div>
+  <div class="track"><div class="fill" id="f"></div></div>
+  <div class="row"><span><b id="e">0</b> days done</span><span><b id="r">0</b> days to go</span></div>
+  <div class="dates">21 Sep 2026 to 21 Sep 2029</div>
+  <details>
+    <summary>Preview the bloom</summary>
+    <input type="range" id="s" min="0" max="100" step="0.5" value="0" aria-label="Preview growth">
+    <button id="back" type="button">Back to today</button>
+  </details>
+</main>
+<script>
+var START=new Date(2026,8,21,0,0,0).getTime();
+var END=new Date(2029,8,21,23,59,59).getTime();
+var DAY=86400000, G=230, MAXSTEM=165;
+var NS="http://www.w3.org/2000/svg";
+var $=function(i){return document.getElementById(i)};
+function clamp(x){return Math.max(0,Math.min(1,x))}
+function actual(){return clamp((Date.now()-START)/(END-START))}
+
+var petalsG=$('petals'), petals=[];
+for(var ring=0;ring<2;ring++){
+  for(var i=0;i<16;i++){
+    var e=document.createElementNS(NS,'ellipse');
+    e.setAttribute('rx',ring?6:7);
+    e.setAttribute('fill',ring?'#e59a1f':'#f6bf43');
+    e.setAttribute('transform','rotate('+(i*22.5+(ring?11.25:0))+')');
+    petalsG.appendChild(e);petals.push({el:e,ring:ring});
+  }
+}
+
+function render(v){
+  var stemH=v<=0?0:8+(MAXSTEM-8)*v;
+  var topY=G-stemH;
+  $('stem').setAttribute('d',v<=0?'':'M100 '+G+' L100 '+topY);
+  $('seed').style.opacity=1-clamp(v/0.03);
+  var la=clamp((v-0.12)/0.25), lb=clamp((v-0.3)/0.25);
+  $('leafA').setAttribute('transform','translate(100 '+(G-stemH*0.32)+') scale('+(-la)+' '+la+') rotate(-18)');
+  $('leafB').setAttribute('transform','translate(100 '+(G-stemH*0.58)+') scale('+lb+' '+lb+') rotate(-18)');
+  $('leafA').style.display=la>0?'':'none';
+  $('leafB').style.display=lb>0?'':'none';
+  $('head').setAttribute('transform','translate(100 '+topY+')');
+  var bud=clamp((v-0.45)/0.15), open=clamp((v-0.68)/0.32), disc=clamp((v-0.55)/0.25);
+  $('sepal').setAttribute('r',(bud*(11+open*5)).toFixed(2));
+  $('disc').setAttribute('r',(disc*15).toFixed(2));
+  $('ring').setAttribute('r',(disc*open*10).toFixed(2));
+  petals.forEach(function(p){
+    var len=(p.ring?28:34)*open;
+    p.el.style.display=len>0.2?'':'none';
+    p.el.setAttribute('ry',(len/2).toFixed(2));
+    p.el.setAttribute('cy',(-(10+len/2)).toFixed(2));
+  });
+  $('plant').setAttribute('class',v>=1?'sway':'');
+  $('p').textContent=(v*100).toFixed(2);
+  $('f').style.width=(v*100)+'%';
+}
+function days(){
+  var now=Date.now();
+  $('e').textContent=Math.max(0,Math.floor((Math.min(now,END)-START)/DAY));
+  $('r').textContent=Math.max(0,Math.ceil((END-Math.max(now,START))/DAY));
+}
+
+var previewing=false, anim=null;
+function grow(){
+  var target=actual();
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){render(target);return}
+  var t0=null,dur=2800;
+  function step(ts){
+    if(previewing){return}
+    if(t0===null)t0=ts;
+    var k=clamp((ts-t0)/dur), eased=1-Math.pow(1-k,3);
+    render(target*eased);
+    if(k<1)anim=requestAnimationFrame(step);else render(actual());
+  }
+  anim=requestAnimationFrame(step);
+}
+$('s').addEventListener('input',function(){
+  previewing=true;if(anim)cancelAnimationFrame(anim);
+  render(parseFloat(this.value)/100);
+});
+$('back').addEventListener('click',function(){
+  previewing=false;$('s').value=0;render(actual());
+});
+days();grow();
+setInterval(function(){if(!previewing)render(actual());days()},60000);
+</script>
+</body>
+</html>
